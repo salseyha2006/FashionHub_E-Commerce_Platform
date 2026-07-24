@@ -1,0 +1,214 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  name         String
+  email        String     @unique
+  passwordHash String     @map("password_hash")
+  phone        String?
+  role         Role       @default(customer)
+  permissions  Json       @default("[]") @map("permissions")
+  isActive     Boolean    @default(true) @map("is_active")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  cartItems    CartItem[]
+  orders       Order[]
+
+  @@map("users")
+}
+
+model Category {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String    @unique
+  sortOrder Int       @default(0) @map("sort_order")
+  products  Product[]
+
+  @@map("categories")
+}
+
+model Banner {
+  id           String   @id @default(uuid()) @db.Uuid
+  title        String
+  subtitle     String?
+  ctaText      String   @default("Shop now") @map("cta_text")
+  ctaLink      String   @default("/shop") @map("cta_link")
+  imageUrl     String?  @map("image_url")
+  gradientFrom String   @default("rose") @map("gradient_from")
+  gradientTo   String   @default("rose-dark") @map("gradient_to")
+  sortOrder    Int      @default(0) @map("sort_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("banners")
+}
+
+model Product {
+  id          String           @id @default(uuid()) @db.Uuid
+  categoryId  String           @map("category_id") @db.Uuid
+  name        String
+  description String?
+  price       Decimal          @db.Decimal(10, 2)
+  images      Json             @default("[]")
+  isActive    Boolean          @default(true) @map("is_active")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  variants    ProductVariant[]
+  category    Category         @relation(fields: [categoryId], references: [id])
+
+  @@index([categoryId])
+  @@map("products")
+}
+
+model ProductVariant {
+  id            String      @id @default(uuid()) @db.Uuid
+  productId     String      @map("product_id") @db.Uuid
+  size          String
+  color         String
+  stockQuantity Int         @default(0) @map("stock_quantity")
+  sku           String?     @unique
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, size, color])
+  @@map("product_variants")
+}
+
+model CartItem {
+  id        String         @id @default(uuid()) @db.Uuid
+  userId    String?        @map("user_id") @db.Uuid
+  variantId String         @map("variant_id") @db.Uuid
+  quantity  Int            @default(1)
+  user      User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("cart_items")
+}
+
+model Order {
+  id              String        @id @default(uuid()) @db.Uuid
+  userId          String        @map("user_id") @db.Uuid
+  totalAmount     Decimal       @map("total_amount") @db.Decimal(10, 2)
+  status          OrderStatus   @default(pending)
+  shippingAddress String        @map("shipping_address")
+  phone           String
+  paymentMethod   PaymentMethod @map("payment_method")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  orderNumber     String        @unique @default(cuid()) @map("order_number")
+  subtotalAmount  Decimal       @default(0) @map("subtotal_amount") @db.Decimal(10, 2)
+  discountAmount  Decimal       @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  taxRate         Decimal       @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  taxAmount       Decimal       @default(0) @map("tax_amount") @db.Decimal(10, 2)
+  amountReceived  Decimal?      @map("amount_received") @db.Decimal(10, 2)
+  changeDue       Decimal?      @map("change_due") @db.Decimal(10, 2)
+  items           OrderItem[]
+  user            User          @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id                  String         @id @default(uuid()) @db.Uuid
+  orderId             String         @map("order_id") @db.Uuid
+  variantId           String         @map("variant_id") @db.Uuid
+  productNameSnapshot String         @map("product_name_snapshot")
+  sizeSnapshot        String         @map("size_snapshot")
+  colorSnapshot       String         @map("color_snapshot")
+  quantity            Int
+  unitPrice           Decimal        @map("unit_price") @db.Decimal(10, 2)
+  order               Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variant             ProductVariant @relation(fields: [variantId], references: [id])
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model StoreSetting {
+  id                  String   @id @default(uuid()) @db.Uuid
+  storeName           String   @default("FashionHub") @map("store_name")
+  storeLogoUrl        String?  @map("store_logo_url")
+  contactPhone        String?  @map("contact_phone")
+  contactEmail        String?  @map("contact_email")
+  storeAddress        String?  @map("store_address")
+  currencySymbol      String   @default("$") @map("currency_symbol")
+  defaultTaxRate      Decimal  @default(0) @map("default_tax_rate") @db.Decimal(5, 2)
+  shippingFee         Decimal  @default(0) @map("shipping_fee") @db.Decimal(10, 2)
+  freeShippingMin     Decimal? @map("free_shipping_min") @db.Decimal(10, 2)
+  bankName            String?  @map("bank_name")
+  bankAccountNumber   String?  @map("bank_account_number")
+  bankAccountName     String?  @map("bank_account_name")
+  bankQrImageUrl      String?  @map("bank_qr_image_url")
+  codEnabled          Boolean  @default(true) @map("cod_enabled")
+  bankTransferEnabled Boolean  @default(true) @map("bank_transfer_enabled")
+  // ── Phase 10: Theme & Branding ──────────────────────────────────────
+  themePrimaryColor   String   @default("#f4297d") @map("theme_primary_color")
+  themeRadiusStyle    String   @default("rounded") @map("theme_radius_style") // rounded | sharp | pill
+  themeFont           String   @default("inter") @map("theme_font")          // inter | kantumruy | system
+  faviconUrl          String?  @map("favicon_url")
+  // ── Phase 11: Presets & Homepage Layout ─────────────────────────────
+  colorPresets        Json     @default("[]") @map("color_presets")
+  sizePresets         Json     @default("[]") @map("size_presets")
+  homepageSections    Json     @default("[]") @map("homepage_sections")
+  // ── Phase 13: SEO, Notifications & System ───────────────────────────
+  seoTitle              String?  @map("seo_title")
+  seoDescription        String?  @map("seo_description")
+  ogImageUrl            String?  @map("og_image_url")
+  gaId                  String?  @map("ga_id")
+  smtpHost              String?  @map("smtp_host")
+  smtpPort              Int?     @map("smtp_port")
+  smtpUser              String?  @map("smtp_user")
+  smtpPasswordEncrypted String?  @map("smtp_password_encrypted")
+  notificationEmailFrom String?  @map("notification_email_from")
+  maintenanceMode       Boolean  @default(false) @map("maintenance_mode")
+  defaultLanguage       String   @default("en") @map("default_language") // en | km
+  timezone              String   @default("Asia/Phnom_Penh") @map("timezone")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("store_settings")
+}
+
+// Phase 14 — Audit log for Settings changes. Stores a snapshot of who
+// changed what and when. Sensitive fields (SMTP password, bank account
+// number, QR image) are redacted to a boolean "changed" flag rather than
+// their actual before/after values — the log is for accountability, not
+// a place secrets get archived indefinitely.
+model SettingAuditLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  actorId       String?  @map("actor_id") @db.Uuid
+  actorName     String   @map("actor_name")
+  actorEmail    String   @map("actor_email")
+  changedFields Json     @map("changed_fields") // [{ field, from, to }] with redaction applied
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("setting_audit_logs")
+}
+
+enum Role {
+  customer
+  admin
+  staff
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  shipped
+  delivered
+  cancelled
+}
+
+enum PaymentMethod {
+  cod
+  bank_transfer
+  cash
+  qr
+}
