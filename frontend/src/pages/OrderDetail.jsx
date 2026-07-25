@@ -1,19 +1,59 @@
-// src/pages/OrderDetail.jsx — REDESIGNED (plain labels, token cleanup)
-import { useParams } from 'react-router-dom';
+// src/pages/OrderDetail.jsx
+import { useParams, useNavigate } from 'react-router-dom';
+import { AlertTriangle, RefreshCw, PackageX } from 'lucide-react';
 import { useOrder } from '../hooks/useOrder';
 import StatusBadge from '../components/orders/StatusBadge';
 import OrderProgress from '../components/orders/OrderProgress';
+import { formatPrice } from '../utils/currency';
 
 export default function OrderDetail() {
   const { id } = useParams();
-  const { order, loading, error } = useOrder(id);
+  const { order, loading, error, errorStatus, refetch } = useOrder(id);
+  const navigate = useNavigate();
 
   if (loading) {
-    return <div className="px-4 py-16 text-center text-sm text-gray-500">Loading order…</div>;
+    return (
+      <div className="px-4 md:px-8 py-6 max-w-lg mx-auto flex flex-col gap-4">
+        <div className="h-6 w-1/2 rounded animate-shimmer" />
+        <div className="h-10 rounded-[var(--radius-lg)] animate-shimmer" />
+        <div className="h-32 rounded-[var(--radius-lg)] animate-shimmer" />
+        <div className="h-20 rounded-[var(--radius-lg)] animate-shimmer" />
+      </div>
+    );
   }
 
   if (error || !order) {
-    return <div className="px-4 py-16 text-center text-sm text-gray-500">Order not found.</div>;
+    const notFound = errorStatus === 404;
+    return (
+      <div className="px-4 py-20 flex flex-col items-center text-center">
+        <div className={`h-16 w-16 rounded-full flex items-center justify-center mb-4 ${notFound ? 'bg-gray-100' : 'bg-error-light'}`}>
+          {notFound
+            ? <PackageX size={26} className="text-gray-400" strokeWidth={1.5} />
+            : <AlertTriangle size={26} className="text-error" strokeWidth={1.5} />}
+        </div>
+        <h1 className="text-lg font-semibold text-gray-900 mb-1">
+          {notFound ? "Order not found" : "Couldn't load this order"}
+        </h1>
+        <p className="text-sm text-gray-500 mb-6">
+          {notFound ? "It may not exist or you don't have access to it." : error}
+        </p>
+        {notFound ? (
+          <button
+            onClick={() => navigate('/my-orders')}
+            className="focus-ring press-scale px-6 py-3 bg-surface border border-gray-300 text-sm font-medium text-gray-700 rounded-[var(--radius-md)] shadow-xs hover:bg-gray-50 transition-colors duration-150"
+          >
+            Back to my orders
+          </button>
+        ) : (
+          <button
+            onClick={refetch}
+            className="focus-ring press-scale flex items-center gap-2 px-6 py-3 bg-surface border border-gray-300 text-sm font-medium text-gray-700 rounded-[var(--radius-md)] shadow-xs hover:bg-gray-50 transition-colors duration-150"
+          >
+            <RefreshCw size={15} /> Retry
+          </button>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -38,7 +78,7 @@ export default function OrderDetail() {
                   {item.sizeSnapshot}, {item.colorSnapshot} × {item.quantity}
                 </p>
               </div>
-              <span className="text-gray-900">${(Number(item.unitPrice) * item.quantity).toFixed(2)}</span>
+              <span className="text-gray-900">{formatPrice(Number(item.unitPrice) * item.quantity)}</span>
             </div>
           ))}
         </div>

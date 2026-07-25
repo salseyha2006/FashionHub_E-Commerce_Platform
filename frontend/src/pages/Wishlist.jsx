@@ -1,7 +1,7 @@
-// src/pages/Wishlist.jsx — REDESIGNED (empty-state icon circle, solid pink CTA, matching Cart.jsx's empty-state pattern)
-import { useEffect, useState } from 'react';
+// src/pages/Wishlist.jsx
+import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart } from 'lucide-react';
+import { Heart, AlertTriangle, RefreshCw } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
 import { useWishlist } from '../context/WishlistContext';
 import ProductCard from '../components/product/ProductCard';
@@ -11,33 +11,54 @@ export default function Wishlist() {
   const { ids } = useWishlist();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
-  useEffect(() => {
+  const loadProducts = useCallback(() => {
     if (ids.length === 0) {
       setProducts([]);
+      setFailed(false);
       setLoading(false);
       return;
     }
     let cancelled = false;
     setLoading(true);
-    // No bulk "get by ids" endpoint exists yet, so we fetch each product
-    // individually and drop any that failed (e.g. since-deleted product).
+    setFailed(false);
     Promise.allSettled(ids.map((id) => apiClient.get(`/products/${id}`)))
       .then((results) => {
         if (cancelled) return;
-        setProducts(
-          results.filter((r) => r.status === 'fulfilled').map((r) => r.value)
-        );
+        const fulfilled = results.filter((r) => r.status === 'fulfilled').map((r) => r.value);
+        setProducts(fulfilled);
+        setFailed(fulfilled.length === 0 && results.length > 0);
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [ids]);
 
+  useEffect(() => loadProducts(), [loadProducts]);
+
   if (loading) {
     return (
-      <div className="px-4 md:px-8 py-6">
+      <div className="px-4 md:px-8 lg:px-12 py-6 max-w-7xl mx-auto">
         <h1 className="text-lg md:text-xl font-semibold tracking-tight text-gray-900 mb-4">Wishlist</h1>
         <ProductGridSkeleton count={4} />
+      </div>
+    );
+  }
+
+  if (failed) {
+    return (
+      <div className="px-4 py-20 flex flex-col items-center text-center">
+        <div className="h-16 w-16 rounded-full bg-error-light flex items-center justify-center mb-4">
+          <AlertTriangle size={26} className="text-error" strokeWidth={1.5} />
+        </div>
+        <h1 className="text-lg font-semibold text-gray-900 mb-1">Couldn't load your wishlist</h1>
+        <p className="text-sm text-gray-500 mb-6">Check your connection and try again.</p>
+        <button
+          onClick={loadProducts}
+          className="focus-ring press-scale flex items-center gap-2 px-6 py-3 bg-surface border border-gray-300 text-sm font-medium text-gray-700 rounded-[var(--radius-md)] shadow-xs hover:bg-gray-50 transition-colors duration-150"
+        >
+          <RefreshCw size={15} /> Retry
+        </button>
       </div>
     );
   }
@@ -61,11 +82,11 @@ export default function Wishlist() {
   }
 
   return (
-    <div className="px-4 md:px-8 py-6 pb-20 md:pb-8">
+    <div className="px-4 md:px-8 lg:px-12 py-6 pb-20 md:pb-8 max-w-7xl mx-auto">
       <h1 className="text-lg md:text-xl font-semibold tracking-tight text-gray-900 mb-4">
         Wishlist ({products.length})
       </h1>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
         {products.map((product) => <ProductCard key={product.id} product={product} />)}
       </div>
     </div>

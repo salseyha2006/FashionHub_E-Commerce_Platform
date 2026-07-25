@@ -1,16 +1,35 @@
-// src/pages/MyOrders.jsx — REDESIGNED (shimmer loading, icon-circle empty state matching Cart/Wishlist, card hover lift)
+// src/pages/MyOrders.jsx
 import { Link } from 'react-router-dom';
-import { Package } from 'lucide-react';
+import { Package, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useOrders } from '../hooks/useOrders';
 import StatusBadge from '../components/orders/StatusBadge';
+import { formatPrice } from '../utils/currency';
 
 export default function MyOrders() {
-  const { orders, loading } = useOrders();
+  const { orders, loading, error, refetch } = useOrders();
 
   if (loading) {
     return (
       <div className="px-4 md:px-8 py-6 max-w-2xl mx-auto flex flex-col gap-3">
         {[1, 2, 3].map((i) => <div key={i} className="h-24 rounded-[var(--radius-lg)] animate-shimmer" />)}
+      </div>
+    );
+  }
+
+  if (error && orders.length === 0) {
+    return (
+      <div className="px-4 py-20 flex flex-col items-center text-center">
+        <div className="h-16 w-16 rounded-full bg-error-light flex items-center justify-center mb-4">
+          <AlertTriangle size={26} className="text-error" strokeWidth={1.5} />
+        </div>
+        <h1 className="text-lg font-semibold text-gray-900 mb-1">Couldn't load your orders</h1>
+        <p className="text-sm text-gray-500 mb-6">{error}</p>
+        <button
+          onClick={refetch}
+          className="focus-ring press-scale flex items-center gap-2 px-6 py-3 bg-surface border border-gray-300 text-sm font-medium text-gray-700 rounded-[var(--radius-md)] shadow-xs hover:bg-gray-50 transition-colors duration-150"
+        >
+          <RefreshCw size={15} /> Retry
+        </button>
       </div>
     );
   }
@@ -46,7 +65,7 @@ export default function MyOrders() {
             <p className="text-xs text-gray-500 mb-2">
               {new Date(order.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
             </p>
-            <p className="text-sm text-gray-900 font-medium">${Number(order.totalAmount).toFixed(2)}</p>
+            <p className="text-sm text-gray-900 font-medium">{formatPrice(order.totalAmount)}</p>
           </Link>
         ))}
       </div>

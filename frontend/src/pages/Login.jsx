@@ -1,6 +1,7 @@
-// src/pages/Login.jsx — REDESIGNED (2026 pink SaaS: rounded inputs w/ focus-glow ring, surface card, solid pink primary button)
+// src/pages/Login.jsx
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -11,6 +12,7 @@ export default function Login() {
   const location = useLocation();
 
   const [form, setForm] = useState({ email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   function handleChange(e) {
@@ -21,7 +23,7 @@ export default function Login() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await login(form.email, form.password);
+      await login(form.email.trim(), form.password);
       showToast('Welcome back.', 'success');
       const redirectTo = location.state?.from || '/';
       navigate(redirectTo, { replace: true });
@@ -51,13 +53,14 @@ export default function Login() {
               autoComplete="email"
               required
             />
-            <Field
+            <PasswordField
               label="Password"
-              type="password"
               name="password"
               value={form.password}
               onChange={handleChange}
               autoComplete="current-password"
+              visible={showPassword}
+              onToggleVisible={() => setShowPassword((v) => !v)}
               required
             />
 
@@ -92,6 +95,32 @@ function Field({ label, name, ...props }) {
         {...props}
         className="focus-ring border border-gray-300 rounded-[var(--radius-sm)] px-3.5 py-2.5 text-sm text-gray-900 bg-surface focus:border-primary-500 transition-colors duration-150"
       />
+    </label>
+  );
+}
+
+function PasswordField({ label, name, visible, onToggleVisible, ...props }) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="text-xs font-medium text-gray-600">{label}</span>
+      <div className="relative">
+        <input
+          id={name}
+          name={name}
+          type={visible ? 'text' : 'password'}
+          {...props}
+          className="focus-ring w-full border border-gray-300 rounded-[var(--radius-sm)] pl-3.5 pr-10 py-2.5 text-sm text-gray-900 bg-surface focus:border-primary-500 transition-colors duration-150"
+        />
+        <button
+          type="button"
+          onClick={onToggleVisible}
+          tabIndex={-1}
+          aria-label={visible ? 'Hide password' : 'Show password'}
+          className="focus-ring absolute right-1 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600 transition-colors duration-150"
+        >
+          {visible ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      </div>
     </label>
   );
 }

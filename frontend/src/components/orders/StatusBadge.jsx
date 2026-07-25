@@ -1,4 +1,4 @@
-// src/components/orders/StatusBadge.jsx — NEW
+// src/components/orders/StatusBadge.jsx
 const STATUS_STYLES = {
   pending: 'bg-amber-50 text-amber-700 border-amber-200',
   confirmed: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -19,7 +19,7 @@ export default function StatusBadge({ status }) {
   return (
     <span
       className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
-        STATUS_STYLES[status] || 'bg-stone text-ink border-stone'
+        STATUS_STYLES[status] || 'bg-gray-100 text-gray-600 border-gray-200'
       }`}
     >
       {STATUS_LABELS[status] || status}

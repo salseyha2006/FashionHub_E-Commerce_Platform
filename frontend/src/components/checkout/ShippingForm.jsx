@@ -1,4 +1,4 @@
-// src/components/checkout/ShippingForm.jsx — REDESIGNED (rounded inputs w/ focus-glow, pink primary Next button)
+// src/components/checkout/ShippingForm.jsx
 import { useState } from 'react';
 
 export default function ShippingForm({ data, onNext, onBack }) {
@@ -25,11 +25,12 @@ export default function ShippingForm({ data, onNext, onBack }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <Field label="Full Name" name="fullName" value={form.fullName} onChange={handleChange} error={errors.fullName} />
-      <Field label="Phone Number" name="phone" type="tel" value={form.phone} onChange={handleChange} error={errors.phone} />
+      <Field label="Full Name" name="fullName" autoComplete="name" value={form.fullName} onChange={handleChange} error={errors.fullName} />
+      <Field label="Phone Number" name="phone" type="tel" autoComplete="tel" inputMode="tel" value={form.phone} onChange={handleChange} error={errors.phone} />
       <Field
         label="Address"
         name="address"
+        autoComplete="street-address"
         value={form.address}
         onChange={handleChange}
         error={errors.address}
