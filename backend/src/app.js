@@ -28,6 +28,7 @@ const posRoutes = require('./routes/pos.routes');
 const settingRoutes = require('./routes/setting.routes');
 const adminSettingRoutes = require('./routes/admin-setting.routes');
 const teamRoutes = require('./routes/team.routes');
+const uploadRoutes = require('./routes/admin-upload.routes');
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.use('/api/admin/pos', posRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/admin/settings', adminSettingRoutes);
 app.use('/api/admin/team', teamRoutes);
+app.use('/api/admin/uploads', uploadRoutes);
 
 app.get('/api/health', (req, res) => res.json({ success: true, data: { status: 'ok' } }));
 

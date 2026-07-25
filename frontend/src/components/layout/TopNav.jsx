@@ -15,12 +15,17 @@ export default function TopNav() {
   const { isAuthenticated, isAdmin } = useAuth();
   const { cartCount } = useCart();
   const { settings } = useSettings();
-  const storeName = settings?.storeName || 'FashionHub';
+  const storeName = settings?.storeName || 'Thida Shop';
+  const storeLogoUrl = settings?.storeLogoUrl;
 
   return (
     <header className="hidden md:flex fixed top-0 inset-x-0 z-30 h-16 bg-surface/90 backdrop-blur-md border-b border-gray-200 items-center px-8 lg:px-12">
       <Link to="/" className="focus-ring flex items-center gap-2 rounded-[var(--radius-sm)] shrink-0">
-        <span className="h-6 w-6 rounded-[7px] bg-[image:var(--gradient-primary)]" aria-hidden="true" />
+        {storeLogoUrl ? (
+          <img src={storeLogoUrl} alt={storeName} className="h-6 w-6 rounded-[7px] object-cover shrink-0" />
+        ) : (
+          <span className="h-6 w-6 rounded-[7px] bg-[image:var(--gradient-primary)]" aria-hidden="true" />
+        )}
         <span className="text-lg font-semibold tracking-tight text-gray-900">
           {storeName}
         </span>

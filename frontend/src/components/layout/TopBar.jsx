@@ -4,10 +4,14 @@ import { Link } from 'react-router-dom';
 import { Menu, ShoppingBag } from 'lucide-react';
 import MobileMenu from './MobileMenu';
 import { useCart } from '../../context/CartContext';
+import { useSettings } from '../../hooks/useSettings';
 
 export default function TopBar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { cartCount } = useCart();
+  const { settings } = useSettings();
+  const storeName = settings?.storeName || 'Thida Shop';
+  const storeLogoUrl = settings?.storeLogoUrl;
 
   return (
     <header className="md:hidden fixed top-0 inset-x-0 z-30 h-16 bg-surface border-b border-gray-200 flex items-center justify-between px-4">
@@ -23,9 +27,13 @@ export default function TopBar() {
         to="/"
         className="focus-ring absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-[var(--radius-sm)]"
       >
-        <span className="h-5 w-5 rounded-[6px] bg-[image:var(--gradient-primary)] shrink-0" aria-hidden="true" />
+        {storeLogoUrl ? (
+          <img src={storeLogoUrl} alt={storeName} className="h-5 w-5 rounded-[6px] object-cover shrink-0" />
+        ) : (
+          <span className="h-5 w-5 rounded-[6px] bg-[image:var(--gradient-primary)] shrink-0" aria-hidden="true" />
+        )}
         <span className="text-base font-semibold tracking-tight text-gray-900">
-          Thida<span className="text-primary-500"> Shop</span>
+          {storeName}
         </span>
       </Link>
 

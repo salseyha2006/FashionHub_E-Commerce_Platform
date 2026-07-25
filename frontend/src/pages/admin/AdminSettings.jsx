@@ -11,6 +11,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useTheme } from '../../context/ThemeContext';
 import { generateColorScale } from '../../utils/theme';
+import ImageUploadInput from '../../components/admin/ImageUploadInput';
+
 
 const inputClass = 'focus-ring w-full border border-gray-300 rounded-[var(--radius-sm)] px-3 py-2.5 text-sm text-gray-900 bg-surface focus:border-primary-500 transition-colors duration-150';
 
@@ -781,8 +783,12 @@ export default function AdminSettings() {
               <input value={storeName} onChange={(e) => setStoreName(e.target.value)} required className={inputClass} />
             </Field>
 
-            <Field label="Store logo URL">
-              <input value={storeLogoUrl} onChange={(e) => setStoreLogoUrl(e.target.value)} placeholder="https://…" className={inputClass} />
+            <Field label="Store logo">
+              <ImageUploadInput
+                value={storeLogoUrl}
+                onChange={setStoreLogoUrl}
+                previewClassName="h-16 w-16 object-contain rounded-[var(--radius-md)] border border-gray-200 bg-gray-50"
+              />
             </Field>
 
             {storeLogoUrl && (
@@ -875,8 +881,12 @@ export default function AdminSettings() {
               </select>
             </Field>
 
-            <Field label="Favicon URL">
-              <input value={faviconUrl} onChange={(e) => setFaviconUrl(e.target.value)} placeholder="https://…" className={inputClass} />
+            <Field label="Favicon">
+              <ImageUploadInput
+                value={faviconUrl}
+                onChange={setFaviconUrl}
+                previewClassName="h-8 w-8 object-contain rounded-[var(--radius-sm)] border border-gray-200 bg-gray-50"
+              />
             </Field>
 
             <SaveButton saving={savingTheme}>{savingTheme ? 'Saving…' : 'Save theme'}</SaveButton>
@@ -1164,8 +1174,12 @@ export default function AdminSettings() {
                   </Field>
                 </div>
 
-                <Field label="Background image URL (optional — leave empty to use a color gradient instead)">
-                  <input value={bannerImageUrl} onChange={(e) => setBannerImageUrl(e.target.value)} placeholder="https://…" className={inputClass} />
+                <Field label="Background image (optional — leave empty to use a color gradient instead)">
+                  <ImageUploadInput
+                    value={bannerImageUrl}
+                    onChange={setBannerImageUrl}
+                    previewClassName="w-full aspect-[21/9] object-cover rounded-[var(--radius-lg)] border border-gray-200 bg-gray-100"
+                  />
                 </Field>
 
                 {bannerImageUrl && (
@@ -1304,8 +1318,12 @@ export default function AdminSettings() {
             <Field label="Meta description">
               <textarea value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} rows={3} maxLength={300} className={`${inputClass} resize-none`} />
             </Field>
-            <Field label="Social preview image (OG image) URL">
-              <input value={ogImageUrl} onChange={(e) => setOgImageUrl(e.target.value)} placeholder="https://…" className={inputClass} />
+            <Field label="Social preview image (OG image)">
+              <ImageUploadInput
+                value={ogImageUrl}
+                onChange={setOgImageUrl}
+                previewClassName="h-24 w-full max-w-xs object-cover rounded-[var(--radius-md)] border border-gray-200 bg-gray-50"
+              />
             </Field>
             <Field label="Google Analytics ID">
               <input value={gaId} onChange={(e) => setGaId(e.target.value)} placeholder="G-XXXXXXXXXX" className={inputClass} />
@@ -1484,8 +1502,12 @@ export default function AdminSettings() {
                   <input value={bankAccountName} onChange={(e) => setBankAccountName(e.target.value)} className={inputClass} />
                 </Field>
 
-                <Field label="Bank QR image URL">
-                  <input value={bankQrImageUrl} onChange={(e) => setBankQrImageUrl(e.target.value)} placeholder="https://…" className={inputClass} />
+                <Field label="Bank QR image">
+                  <ImageUploadInput
+                    value={bankQrImageUrl}
+                    onChange={setBankQrImageUrl}
+                    previewClassName="h-40 w-40 object-contain rounded-[var(--radius-md)] border border-gray-200 bg-gray-50"
+                  />
                 </Field>
 
                 {bankQrImageUrl && (

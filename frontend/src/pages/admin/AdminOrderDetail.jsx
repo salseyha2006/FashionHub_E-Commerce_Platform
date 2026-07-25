@@ -7,6 +7,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import StatusBadge from '../../components/orders/StatusBadge';
 import OrderProgress from '../../components/orders/OrderProgress';
+import { formatPrice } from '../../utils/currency';
+import { useSettings } from '../../hooks/useSettings';
 
 const NEXT_STATUSES = {
   pending: ['confirmed', 'cancelled'],
@@ -40,6 +42,7 @@ function DetailSkeleton() {
 export default function AdminOrderDetail() {
   const { id } = useParams();
   const { token } = useAuth();
+  const { settings } = useSettings();
   const { showToast } = useToast();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -135,7 +138,7 @@ export default function AdminOrderDetail() {
                   {item.sizeSnapshot}, {item.colorSnapshot} × {item.quantity}
                 </p>
               </div>
-              <span className="text-gray-900 font-medium">${(Number(item.unitPrice) * item.quantity).toFixed(2)}</span>
+              <span className="text-gray-900 font-medium">{formatPrice(Number(item.unitPrice) * item.quantity)}</span>
             </div>
           ))}
         </div>
@@ -153,23 +156,23 @@ export default function AdminOrderDetail() {
       <div className="pt-4 border-t border-gray-200 mb-6 space-y-1.5">
         <div className="flex justify-between text-sm text-gray-500">
           <span>Subtotal</span>
-          <span>${Number(order.subtotalAmount ?? order.totalAmount).toFixed(2)}</span>
+          <span>{formatPrice(order.subtotalAmount ?? order.totalAmount)}</span>
         </div>
         {Number(order.discountAmount) > 0 && (
           <div className="flex justify-between text-sm text-error">
             <span>Discount</span>
-            <span>-${Number(order.discountAmount).toFixed(2)}</span>
+            <span>-{formatPrice(order.discountAmount)}</span>
           </div>
         )}
         {Number(order.taxAmount) > 0 && (
           <div className="flex justify-between text-sm text-gray-500">
             <span>Tax ({Number(order.taxRate)}%)</span>
-            <span>${Number(order.taxAmount).toFixed(2)}</span>
+            <span>{formatPrice(order.taxAmount)}</span>
           </div>
         )}
         <div className="flex justify-between text-base font-medium pt-1">
           <span className="text-gray-900">Total</span>
-          <span className="text-gray-900">${Number(order.totalAmount).toFixed(2)}</span>
+          <span className="text-gray-900">{formatPrice(order.totalAmount)}</span>
         </div>
       </div>
 
@@ -214,7 +217,7 @@ export default function AdminOrderDetail() {
               className="bg-white rounded-[var(--radius-md)] max-w-sm w-full p-6 max-h-[90vh] overflow-y-auto print:max-h-none print:shadow-none print:rounded-none"
             >
               <div className="text-center mb-4">
-                <p className="text-sm font-semibold text-gray-900">Thida Shop</p>
+                <p className="text-sm font-semibold text-gray-900">{settings?.storeName || 'Thida Shop'}</p>
                 <p className="text-xs text-gray-500">Sale Invoice</p>
               </div>
 
@@ -232,7 +235,7 @@ export default function AdminOrderDetail() {
                     <span className="flex-1 min-w-0 truncate pr-2">
                       {item.productNameSnapshot} ({item.sizeSnapshot}/{item.colorSnapshot}) × {item.quantity}
                     </span>
-                    <span className="shrink-0">${(Number(item.unitPrice) * item.quantity).toFixed(2)}</span>
+                    <span className="shrink-0">{formatPrice(Number(item.unitPrice) * item.quantity)}</span>
                   </li>
                 ))}
               </ul>
@@ -240,23 +243,23 @@ export default function AdminOrderDetail() {
               <div className="text-sm space-y-1 mb-5">
                 <div className="flex justify-between text-gray-500">
                   <span>Subtotal</span>
-                  <span>${Number(order.subtotalAmount ?? order.totalAmount).toFixed(2)}</span>
+                  <span>{formatPrice(order.subtotalAmount ?? order.totalAmount)}</span>
                 </div>
                 {Number(order.discountAmount) > 0 && (
                   <div className="flex justify-between text-error">
                     <span>Discount</span>
-                    <span>-${Number(order.discountAmount).toFixed(2)}</span>
+                    <span>-{formatPrice(order.discountAmount)}</span>
                   </div>
                 )}
                 {Number(order.taxAmount) > 0 && (
                   <div className="flex justify-between text-gray-500">
                     <span>Tax ({Number(order.taxRate)}%)</span>
-                    <span>${Number(order.taxAmount).toFixed(2)}</span>
+                    <span>{formatPrice(order.taxAmount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-base font-semibold text-gray-900 pt-1">
                   <span>Total</span>
-                  <span>${Number(order.totalAmount).toFixed(2)}</span>
+                  <span>{formatPrice(order.totalAmount)}</span>
                 </div>
               </div>
 

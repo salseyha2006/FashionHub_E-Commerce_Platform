@@ -2,6 +2,7 @@
 import { X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../hooks/useSettings';
 
 const LINKS = [
   { to: '/', label: 'Home' },
@@ -11,6 +12,9 @@ const LINKS = [
 
 export default function MobileMenu({ open, onClose }) {
   const { isAuthenticated, user, logout } = useAuth();
+  const { settings } = useSettings();
+  const storeName = settings?.storeName || 'Thida Shop';
+  const storeLogoUrl = settings?.storeLogoUrl;
 
   return (
     <>
@@ -32,9 +36,13 @@ export default function MobileMenu({ open, onClose }) {
       >
         <div className="flex items-center justify-between px-5 h-16 border-b border-gray-200">
           <span className="flex items-center gap-1.5">
-            <span className="h-5 w-5 rounded-[6px] bg-[image:var(--gradient-primary)]" aria-hidden="true" />
+            {storeLogoUrl ? (
+              <img src={storeLogoUrl} alt={storeName} className="h-5 w-5 rounded-[6px] object-cover shrink-0" />
+            ) : (
+              <span className="h-5 w-5 rounded-[6px] bg-[image:var(--gradient-primary)]" aria-hidden="true" />
+            )}
             <span className="text-base font-semibold tracking-tight text-gray-900">
-              Thida<span className="text-primary-500"> Shop</span>
+              {storeName}
             </span>
           </span>
           <button

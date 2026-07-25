@@ -6,6 +6,7 @@ import { apiClient } from '../../lib/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import StatusBadge from '../../components/orders/StatusBadge';
+import { formatPrice } from '../../utils/currency';
 
 function StatCard({ icon: Icon, label, value }) {
   return (
@@ -37,7 +38,7 @@ function SalesChart({ data }) {
                 height: `${Math.max((d.total / max) * 100, 3)}%`,
                 background: 'var(--gradient-primary)',
               }}
-              title={`$${d.total.toFixed(2)}`}
+              title={formatPrice(d.total)}
             />
           </div>
           <span className="text-[10px] text-gray-500 uppercase font-medium">{d.month.slice(5)}</span>
@@ -97,7 +98,7 @@ export default function AdminDashboard() {
       <h1 className="text-lg md:text-xl font-semibold tracking-tight text-gray-900 mb-6">Dashboard</h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <StatCard icon={DollarSign} label="Today's Sales" value={`$${stats.todaySales.toFixed(2)}`} />
+        <StatCard icon={DollarSign} label="Today's Sales" value={formatPrice(stats.todaySales)} />
         <StatCard icon={ShoppingBag} label="Orders Today" value={stats.ordersToday} />
         <StatCard icon={AlertTriangle} label="Low Stock Items" value={stats.lowStockCount} />
       </div>
@@ -152,7 +153,7 @@ export default function AdminDashboard() {
                 >
                   <span className="text-gray-900">#{o.orderNumber}</span>
                   <StatusBadge status={o.status} />
-                  <span className="text-gray-900 font-medium shrink-0">${Number(o.totalAmount).toFixed(2)}</span>
+                  <span className="text-gray-900 font-medium shrink-0">{formatPrice(o.totalAmount)}</span>
                 </Link>
               ))}
             </div>

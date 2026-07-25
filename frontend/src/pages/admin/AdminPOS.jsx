@@ -11,6 +11,8 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { apiClient } from '../../lib/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useSettings } from '../../hooks/useSettings';
+import { formatPrice, getCurrencySymbol } from '../../utils/currency';
 
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Cash' },
@@ -42,7 +44,7 @@ function HeldSalesList({ heldCarts, onResume, onDelete, compact }) {
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-gray-900 truncate">{h.label}</p>
               <p className="text-[11px] text-gray-500">
-                {itemCount} item{itemCount !== 1 ? 's' : ''} · ${heldTotal.toFixed(2)} · {new Date(h.heldAt).toLocaleTimeString()}
+                {itemCount} item{itemCount !== 1 ? 's' : ''} · {formatPrice(heldTotal)} · {new Date(h.heldAt).toLocaleTimeString()}
               </p>
             </div>
             <button
@@ -68,6 +70,7 @@ function HeldSalesList({ heldCarts, onResume, onDelete, compact }) {
 
 export default function AdminPOS() {
   const { token, user } = useAuth();
+  const { settings } = useSettings();
   const { showToast } = useToast();
 
   const [query, setQuery] = useState('');
@@ -432,8 +435,12 @@ export default function AdminPOS() {
       {/* Slim top bar — replaces the admin sidebar/header while in POS mode */}
       <header className="shrink-0 h-14 px-4 md:px-6 flex items-center justify-between border-b border-gray-200 bg-surface">
         <div className="flex items-center gap-2">
-          <span className="h-6 w-6 rounded-[7px] bg-[image:var(--gradient-primary)] shrink-0" aria-hidden="true" />
-          <span className="text-sm font-semibold text-gray-900">Thida Shop · POS</span>
+          {settings?.storeLogoUrl ? (
+            <img src={settings.storeLogoUrl} alt={settings?.storeName || 'Thida Shop'} className="h-6 w-6 rounded-[7px] object-cover shrink-0" />
+          ) : (
+            <span className="h-6 w-6 rounded-[7px] bg-[image:var(--gradient-primary)] shrink-0" aria-hidden="true" />
+          )}
+          <span className="text-sm font-semibold text-gray-900">{settings?.storeName || 'Thida Shop'} · POS</span>
         </div>
         <div className="flex items-center gap-3">
           <span className="hidden md:flex items-center gap-2.5 text-[11px] text-gray-400">
@@ -649,7 +656,7 @@ export default function AdminPOS() {
                     <p className="text-xs font-medium text-gray-900 truncate">{v.productName}</p>
                     <p className="text-[11px] text-gray-500 truncate">{v.size} / {v.color}</p>
                     <div className="flex items-center justify-between mt-1">
-                      <span className="text-sm font-semibold text-gray-900">${Number(v.price).toFixed(2)}</span>
+                      <span className="text-sm font-semibold text-gray-900">{formatPrice(v.price)}</span>
                       <span
                         className={`text-[10px] ${
                           v.stockQuantity <= LOW_STOCK_THRESHOLD && v.stockQuantity > 0
@@ -704,7 +711,7 @@ export default function AdminPOS() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-gray-900 truncate">{i.productName}</p>
                       <p className="text-xs text-gray-500">
-                        {i.size} / {i.color} · ${i.price.toFixed(2)}
+                        {i.size} / {i.color} · {formatPrice(i.price)}
                         {i.stockQuantity - i.quantity <= LOW_STOCK_THRESHOLD && (
                           <span className="text-amber-600 font-medium"> · {i.stockQuantity - i.quantity} left</span>
                         )}
@@ -739,10 +746,10 @@ export default function AdminPOS() {
             <div className="py-3 border-t border-gray-100 mb-3 space-y-2">
               <div className="flex items-center justify-between text-sm text-gray-500">
                 <span>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>{formatPrice(subtotal)}</span>
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-xs text-gray-500 w-16 shrink-0">Discount $</label>
+                <label className="text-xs text-gray-500 w-16 shrink-0">Discount {getCurrencySymbol()}</label>
                 <input
                   type="number"
                   inputMode="decimal"
@@ -773,20 +780,20 @@ export default function AdminPOS() {
                   {discountAmount > 0 && (
                     <div className="flex items-center justify-between text-sm text-error">
                       <span>Discount</span>
-                      <span>-${discountAmount.toFixed(2)}</span>
+                      <span>-{formatPrice(discountAmount)}</span>
                     </div>
                   )}
                   {taxAmount > 0 && (
                     <div className="flex items-center justify-between text-sm text-gray-500">
                       <span>Tax ({taxRate}%)</span>
-                      <span>${taxAmount.toFixed(2)}</span>
+                      <span>{formatPrice(taxAmount)}</span>
                     </div>
                   )}
                 </>
               )}
               <div className="flex items-center justify-between pt-1">
                 <span className="text-sm font-medium text-gray-700">Total</span>
-                <span className="text-lg font-semibold text-gray-900">${grandTotal.toFixed(2)}</span>
+                <span className="text-lg font-semibold text-gray-900">{formatPrice(grandTotal)}</span>
               </div>
             </div>
 
@@ -814,7 +821,7 @@ export default function AdminPOS() {
               disabled={cart.length === 0}
               className="w-full py-2.5 rounded-[var(--radius-md)] bg-primary-600 text-white text-sm font-medium disabled:opacity-50 hover:bg-primary-700 transition-colors"
             >
-              Charge · ${grandTotal.toFixed(2)}
+              Charge · {formatPrice(grandTotal)}
             </button>
           </div>
         </div>
@@ -836,7 +843,7 @@ export default function AdminPOS() {
 
             <div className="text-center mb-5 py-3 bg-gray-25 rounded-[var(--radius-md)]">
               <p className="text-xs text-gray-500 mb-1">Total Due</p>
-              <p className="text-3xl font-semibold text-gray-900">${grandTotal.toFixed(2)}</p>
+              <p className="text-3xl font-semibold text-gray-900">{formatPrice(grandTotal)}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-2 mb-4">
@@ -891,7 +898,7 @@ export default function AdminPOS() {
                       onClick={() => setAmountReceived(String(amt))}
                       className="flex-1 min-h-[40px] py-1.5 rounded-[var(--radius-sm)] border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 active:bg-gray-100"
                     >
-                      ${amt}
+                      {getCurrencySymbol()}{amt}
                     </button>
                   ))}
                 </div>
@@ -899,7 +906,7 @@ export default function AdminPOS() {
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
                   <span className="text-sm text-gray-500">Change</span>
                   <span className={`text-lg font-semibold ${cashInsufficient ? 'text-error' : 'text-gray-900'}`}>
-                    ${changeDue.toFixed(2)}
+                    {formatPrice(changeDue)}
                   </span>
                 </div>
                 {cashInsufficient && (
@@ -915,7 +922,7 @@ export default function AdminPOS() {
                   <p className="text-[11px] mt-1">Scan to Pay</p>
                 </div>
                 <p className="text-sm text-gray-600">
-                  Amount: <span className="font-semibold text-gray-900">${grandTotal.toFixed(2)}</span>
+                  Amount: <span className="font-semibold text-gray-900">{formatPrice(grandTotal)}</span>
                 </p>
                 <p className="text-[11px] text-gray-400 mt-1 text-center">
                   Placeholder QR — connect a real payment gateway (e.g. Bakong KHQR) here later.
@@ -968,8 +975,8 @@ export default function AdminPOS() {
               className="bg-white max-w-[302px] w-full p-4 max-h-[90vh] overflow-y-auto font-mono text-[11px] leading-snug text-black print:max-h-none print:shadow-none"
             >
               <div className="text-center mb-3">
-                <p className="text-sm font-bold uppercase">Thida Shop</p>
-                <p className="text-[10px]">Phnom Penh, Cambodia</p>
+                <p className="text-sm font-bold uppercase">{settings?.storeName || 'Thida Shop'}</p>
+                {settings?.storeAddress && <p className="text-[10px]">{settings.storeAddress}</p>}
                 <p className="text-[10px] mt-1">*** SALE RECEIPT ***</p>
               </div>
 
@@ -993,8 +1000,8 @@ export default function AdminPOS() {
                       <span className="flex-1 min-w-0 pr-1">{i.productName}</span>
                     </div>
                     <div className="flex justify-between text-[10px]">
-                      <span>{i.size}/{i.color} × {i.quantity} @ ${i.price.toFixed(2)}</span>
-                      <span>${(i.price * i.quantity).toFixed(2)}</span>
+                      <span>{i.size}/{i.color} × {i.quantity} @ {formatPrice(i.price)}</span>
+                      <span>{formatPrice(i.price * i.quantity)}</span>
                     </div>
                   </div>
                 ))}
@@ -1003,20 +1010,20 @@ export default function AdminPOS() {
               <div className="border-t border-dashed border-black my-2" />
 
               <div className="space-y-0.5">
-                <div className="flex justify-between"><span>Subtotal</span><span>${invoice.subtotal.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span>Subtotal</span><span>{formatPrice(invoice.subtotal)}</span></div>
                 {invoice.discountAmount > 0 && (
-                  <div className="flex justify-between"><span>Discount</span><span>-${invoice.discountAmount.toFixed(2)}</span></div>
+                  <div className="flex justify-between"><span>Discount</span><span>-{formatPrice(invoice.discountAmount)}</span></div>
                 )}
                 {invoice.taxAmount > 0 && (
-                  <div className="flex justify-between"><span>Tax ({invoice.taxRate}%)</span><span>${invoice.taxAmount.toFixed(2)}</span></div>
+                  <div className="flex justify-between"><span>Tax ({invoice.taxRate}%)</span><span>{formatPrice(invoice.taxAmount)}</span></div>
                 )}
                 <div className="border-t border-black my-1" />
-                <div className="flex justify-between text-sm font-bold"><span>TOTAL</span><span>${invoice.total.toFixed(2)}</span></div>
+                <div className="flex justify-between text-sm font-bold"><span>TOTAL</span><span>{formatPrice(invoice.total)}</span></div>
 
                 {invoice.paymentMethod === 'cash' && invoice.amountReceived != null && (
                   <>
-                    <div className="flex justify-between mt-1"><span>Cash Received</span><span>${invoice.amountReceived.toFixed(2)}</span></div>
-                    <div className="flex justify-between"><span>Change</span><span>${invoice.changeDue.toFixed(2)}</span></div>
+                    <div className="flex justify-between mt-1"><span>Cash Received</span><span>{formatPrice(invoice.amountReceived)}</span></div>
+                    <div className="flex justify-between"><span>Change</span><span>{formatPrice(invoice.changeDue)}</span></div>
                   </>
                 )}
               </div>

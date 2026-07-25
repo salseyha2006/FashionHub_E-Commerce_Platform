@@ -2,6 +2,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { LayoutDashboard, Package, ClipboardList, ShoppingCart, Settings } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../hooks/useSettings';
 
 // Categories & Banners moved into Settings (Store section) — no longer
 // top-level nav items. Their pages/CRUD now live at /admin/settings.
@@ -15,6 +16,9 @@ const LINKS = [
 
 export default function AdminLayout() {
   const { hasPermission } = useAuth();
+  const { settings } = useSettings();
+  const storeName = settings?.storeName || 'Thida Shop';
+  const storeLogoUrl = settings?.storeLogoUrl;
   // The owner (role=admin) always passes hasPermission for every key, so
   // this only actually filters anything down for role=staff accounts.
   //
@@ -36,9 +40,13 @@ export default function AdminLayout() {
         {/* Desktop/tablet: left sidebar (md and up) */}
         <aside className="hidden md:block md:w-60 shrink-0 md:border-r border-gray-200 bg-surface md:min-h-screen">
           <div className="px-4 md:px-6 py-4 flex items-center gap-2">
-            <span className="h-6 w-6 rounded-[7px] bg-[image:var(--gradient-primary)] shrink-0" aria-hidden="true" />
+            {storeLogoUrl ? (
+              <img src={storeLogoUrl} alt={storeName} className="h-6 w-6 rounded-[7px] object-cover shrink-0" />
+            ) : (
+              <span className="h-6 w-6 rounded-[7px] bg-[image:var(--gradient-primary)] shrink-0" aria-hidden="true" />
+            )}
             <div>
-              <p className="text-xs text-gray-500 leading-tight">Thida Shop</p>
+              <p className="text-xs text-gray-500 leading-tight">{storeName}</p>
               <p className="text-sm font-semibold text-gray-900 leading-tight">Admin</p>
             </div>
           </div>
@@ -64,9 +72,13 @@ export default function AdminLayout() {
 
         {/* Mobile top bar: just the brand, since nav moves to the bottom tab bar */}
         <div className="md:hidden px-4 py-3 flex items-center gap-2 border-b border-gray-200 bg-surface">
-          <span className="h-6 w-6 rounded-[7px] bg-[image:var(--gradient-primary)] shrink-0" aria-hidden="true" />
+          {storeLogoUrl ? (
+            <img src={storeLogoUrl} alt={storeName} className="h-6 w-6 rounded-[7px] object-cover shrink-0" />
+          ) : (
+            <span className="h-6 w-6 rounded-[7px] bg-[image:var(--gradient-primary)] shrink-0" aria-hidden="true" />
+          )}
           <div>
-            <p className="text-xs text-gray-500 leading-tight">Thida Shop</p>
+            <p className="text-xs text-gray-500 leading-tight">{storeName}</p>
             <p className="text-sm font-semibold text-gray-900 leading-tight">Admin</p>
           </div>
         </div>

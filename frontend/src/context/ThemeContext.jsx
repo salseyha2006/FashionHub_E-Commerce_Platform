@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { apiClient } from '../lib/apiClient';
 import { applyTheme, getCachedTheme } from '../utils/theme';
+import { setCurrencySymbol } from '../utils/currency';
 
 const ThemeContext = createContext(null);
 
@@ -20,6 +21,7 @@ export function ThemeProvider({ children }) {
     return apiClient.get('/settings')
       .then((data) => {
         applyTheme(data);
+        setCurrencySymbol(data.currencySymbol);
         setTheme(data);
         return data;
       })

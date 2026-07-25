@@ -9,6 +9,7 @@ import { X, Download, Upload, CheckCircle2, AlertTriangle, XCircle, Loader2 } fr
 import { apiClient } from '../../lib/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { formatPrice } from '../../utils/currency';
 
 const TEMPLATE_HEADERS = ['name', 'category', 'description', 'price', 'images', 'variants'];
 const TEMPLATE_EXAMPLE_ROW = [
@@ -370,7 +371,7 @@ export default function BulkImportModal({ open, onClose, categories, onImported 
                         <td className="px-3 py-2 text-gray-900">{r.name || '—'}</td>
                         <td className="px-3 py-2 text-gray-700">{r.categoryName || '—'}</td>
                         <td className="px-3 py-2 text-gray-700">
-                          {r.priceNum !== null && !Number.isNaN(r.priceNum) ? `$${r.priceNum.toFixed(2)}` : '—'}
+                          {r.priceNum !== null && !Number.isNaN(r.priceNum) ? formatPrice(r.priceNum) : '—'}
                         </td>
                         <td className="px-3 py-2 text-gray-500">
                           {r.status === 'valid' ? '—' : r.reasons.join('; ')}

@@ -1,8 +1,9 @@
 // src/pages/admin/AdminProductForm.jsx — MERGED: inline category creation + row-based images (kept as-is)
 // + Quick Generate variant bulk-creator + per-row color chips (re-added on top)
+// + Upload-from-device images, drag-to-reorder, cover badge (Phase: image UX overhaul)
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Trash2, Plus, X, Wand2 } from 'lucide-react';
+import { Trash2, Plus, X, Wand2, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
 import { apiClient } from '../../lib/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -27,6 +28,7 @@ const FALLBACK_COLOR_PRESETS = [
   { name: 'Beige', hex: '#D6C7A1' },
 ];
 const NEW_CATEGORY_VALUE = '__new__';
+const MAX_IMAGES = 6; // must match backend upload.array('images', 6) limit
 
 // Shared key builder so the save-time duplicate check and the Quick Generate
 // panel's skip-duplicates logic can never drift out of sync with each other.
@@ -77,6 +79,9 @@ export default function AdminProductForm() {
   const [price, setPrice] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [images, setImages] = useState(['']);
+  const [uploading, setUploading] = useState(false);
+  const [editingUrlIndex, setEditingUrlIndex] = useState(null);
+  const [dragIndex, setDragIndex] = useState(null);
   const [variants, setVariants] = useState([emptyVariant()]);
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
@@ -131,9 +136,64 @@ export default function AdminProductForm() {
   function updateImage(index, value) {
     setImages((prev) => prev.map((url, i) => (i === index ? value : url)));
   }
-  function addImageRow() { setImages((prev) => [...prev, '']); }
+  function addImageRow() {
+    setImages((prev) => (prev.length >= MAX_IMAGES ? prev : [...prev, '']));
+  }
   function removeImageRow(index) {
     setImages((prev) => (prev.length === 1 ? [''] : prev.filter((_, i) => i !== index)));
+  }
+
+  // Drag-and-drop reordering — the cover photo (index 0) is whichever
+  // image ends up first, so reordering doubles as "set cover image".
+  function moveImage(fromIndex, toIndex) {
+    if (fromIndex === toIndex) return;
+    setImages((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
+  }
+  function handleDragStart(index) { setDragIndex(index); }
+  function handleDragOver(e, index) {
+    e.preventDefault();
+    if (dragIndex === null || dragIndex === index) return;
+    moveImage(dragIndex, index);
+    setDragIndex(index);
+  }
+  function handleDragEnd() { setDragIndex(null); }
+
+  async function handleFileUpload(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const currentCount = images.filter((u) => u.trim()).length;
+    const remainingSlots = MAX_IMAGES - currentCount;
+    if (remainingSlots <= 0) {
+      showToast(`You can only have up to ${MAX_IMAGES} images per product.`, 'error');
+      e.target.value = '';
+      return;
+    }
+
+    const filesToUpload = files.slice(0, remainingSlots);
+    if (files.length > remainingSlots) {
+      showToast(`Only ${remainingSlots} slot${remainingSlots === 1 ? '' : 's'} left — uploading the first ${remainingSlots}.`, 'error');
+    }
+
+    setUploading(true);
+    try {
+      const { urls } = await apiClient.uploadImages(filesToUpload, { token });
+      setImages((prev) => {
+        const withoutEmpty = prev.filter((u) => u.trim());
+        return [...withoutEmpty, ...urls];
+      });
+      showToast(`Uploaded ${urls.length} image${urls.length === 1 ? '' : 's'}.`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setUploading(false);
+      e.target.value = ''; // allow re-selecting the same file(s) later
+    }
   }
 
   function handleCategorySelect(value) {
@@ -340,42 +400,122 @@ export default function AdminProductForm() {
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-medium text-gray-600">Images</p>
-            <button
-              type="button"
-              onClick={addImageRow}
-              className="focus-ring press-scale flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors duration-150"
-            >
-              <Plus size={14} /> Add image
-            </button>
+            <div className="flex items-baseline gap-2">
+              <p className="text-xs font-medium text-gray-600">Product images</p>
+              <span className="text-[11px] text-gray-400">{imageUrls.length}/{MAX_IMAGES}</span>
+            </div>
+            <label className={`focus-ring press-scale flex items-center gap-1 text-xs font-medium transition-colors duration-150 ${
+              uploading || imageUrls.length >= MAX_IMAGES
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-primary-600 hover:text-primary-700 cursor-pointer'
+            }`}>
+              {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+              {uploading ? 'Uploading…' : 'Upload'}
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileUpload}
+                disabled={uploading || imageUrls.length >= MAX_IMAGES}
+                className="hidden"
+              />
+            </label>
           </div>
-          <div className="flex flex-col gap-2">
-            {images.map((url, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <img
-                  src={url || undefined}
-                  alt={`Preview ${i + 1}`}
-                  className={`w-11 h-11 shrink-0 object-cover rounded-[var(--radius-sm)] border border-gray-200 bg-gray-100 ${!url ? 'opacity-0' : ''}`}
-                  onError={(e) => { e.target.style.opacity = 0.15; }}
-                />
-                <input
-                  value={url}
-                  onChange={(e) => updateImage(i, e.target.value)}
-                  placeholder="https://…"
-                  className={inputClass}
-                />
-                <button
-                  type="button"
-                  onClick={() => removeImageRow(i)}
-                  disabled={images.length === 1 && !images[0]}
-                  className="focus-ring press-scale shrink-0 p-2.5 text-gray-500 hover:text-error hover:bg-error-light rounded-[var(--radius-sm)] transition-colors duration-150 disabled:opacity-30"
-                  aria-label="Remove image"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
-          </div>
+
+          {imageUrls.length === 0 && !uploading ? (
+            <label className="focus-ring flex flex-col items-center justify-center gap-2 py-10 border-2 border-dashed border-gray-300 rounded-[var(--radius-md)] cursor-pointer hover:border-primary-400 hover:bg-primary-50/30 transition-colors duration-150">
+              <ImageIcon size={28} className="text-gray-300" />
+              <span className="text-xs text-gray-500">Drag photos here or click to upload</span>
+              <span className="text-[10px] text-gray-400">JPG, PNG or WEBP — up to {MAX_IMAGES} images</span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileUpload}
+                disabled={uploading}
+                className="hidden"
+              />
+            </label>
+          ) : (
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+              {images.map((url, i) => {
+                if (!url) return null;
+                return (
+                  <div
+                    key={url + i}
+                    draggable
+                    onDragStart={() => handleDragStart(i)}
+                    onDragOver={(e) => handleDragOver(e, i)}
+                    onDragEnd={handleDragEnd}
+                    className={`relative group cursor-grab active:cursor-grabbing transition-opacity duration-150 ${dragIndex === i ? 'opacity-40' : ''}`}
+                  >
+                    <img
+                      src={url}
+                      alt={`Product photo ${i + 1}`}
+                      className="w-full aspect-square object-cover rounded-[var(--radius-sm)] border border-gray-200 bg-gray-100 pointer-events-none"
+                      onError={(e) => { e.target.style.opacity = 0.15; }}
+                    />
+
+                    {i === 0 && (
+                      <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded-full bg-gray-900/80 text-white text-[9px] font-medium tracking-wide">
+                        COVER
+                      </span>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => removeImageRow(i)}
+                      className="absolute top-1 right-1 p-1 bg-white/90 text-gray-600 hover:text-error rounded-full shadow-xs opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+                      aria-label="Remove image"
+                    >
+                      <X size={14} />
+                    </button>
+
+                    {editingUrlIndex === i ? (
+                      <input
+                        autoFocus
+                        value={url}
+                        onChange={(e) => updateImage(i, e.target.value)}
+                        onBlur={() => setEditingUrlIndex(null)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') setEditingUrlIndex(null); }}
+                        placeholder="https://…"
+                        className={`${inputClass} mt-1 text-xs py-1.5`}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setEditingUrlIndex(i)}
+                        className="mt-1 w-full text-[10px] text-gray-400 hover:text-primary-600 truncate text-left opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+                      >
+                        Edit link
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+
+              {imageUrls.length < MAX_IMAGES && (
+                <label className={`focus-ring flex flex-col items-center justify-center gap-1 aspect-square border-2 border-dashed rounded-[var(--radius-sm)] transition-colors duration-150 ${
+                  uploading ? 'border-gray-200 cursor-not-allowed' : 'border-gray-300 cursor-pointer hover:border-primary-400 hover:bg-primary-50/30'
+                }`}>
+                  {uploading ? <Loader2 size={18} className="animate-spin text-gray-400" /> : <Plus size={18} className="text-gray-400" />}
+                  <span className="text-[10px] text-gray-400">{uploading ? 'Uploading' : 'Add photo'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileUpload}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
+          )}
+
+          {imageUrls.length > 1 && (
+            <p className="mt-2 text-[10px] text-gray-400">Drag photos to reorder — the first one is used as the cover image.</p>
+          )}
         </div>
 
         {/* Quick generate — bulk-create size × color variant rows */}

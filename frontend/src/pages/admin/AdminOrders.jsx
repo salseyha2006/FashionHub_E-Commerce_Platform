@@ -5,6 +5,7 @@ import { Search, X } from 'lucide-react';
 import { apiClient } from '../../lib/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { formatPrice } from '../../utils/currency';
 
 const STATUS_OPTIONS = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
 const NEXT_STATUSES = {
@@ -186,7 +187,7 @@ export default function AdminOrders() {
                     <td className="px-4 py-3 text-gray-500 max-w-[220px] truncate" title={o.shippingAddress || ''}>
                       {o.shippingAddress || '—'}
                     </td>
-                    <td className="px-4 py-3 text-gray-900 font-medium">${Number(o.totalAmount).toFixed(2)}</td>
+                    <td className="px-4 py-3 text-gray-900 font-medium">{formatPrice(o.totalAmount)}</td>
                     <td className="px-4 py-3">
                       <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${STATUS_STYLES[o.status]}`}>{o.status}</span>
                     </td>
@@ -245,7 +246,7 @@ export default function AdminOrders() {
                 </dl>
 
                 <div className="flex items-center justify-between pt-2.5 border-t border-gray-100">
-                  <span className="text-base font-semibold text-gray-900">${Number(o.totalAmount).toFixed(2)}</span>
+                  <span className="text-base font-semibold text-gray-900">{formatPrice(o.totalAmount)}</span>
                   {NEXT_STATUSES[o.status].length === 0 ? (
                     <span className="text-xs text-gray-400">—</span>
                   ) : (

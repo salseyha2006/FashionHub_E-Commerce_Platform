@@ -52,7 +52,7 @@ export default function OrderDetail() {
 
       <div className="flex justify-between pt-4 border-t border-gray-200 text-base font-medium">
         <span className="text-gray-900">Total</span>
-        <span className="text-gray-900">${Number(order.totalAmount).toFixed(2)}</span>
+        <span className="text-gray-900">{formatPrice(order.totalAmount)}</span>
       </div>
     </div>
   );

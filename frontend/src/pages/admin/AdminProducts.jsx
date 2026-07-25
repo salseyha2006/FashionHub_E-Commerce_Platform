@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useCategories } from '../../hooks/useCategories';
 import BulkImportModal from '../../components/admin/BulkImportModal';
+import { formatPrice } from '../../utils/currency';
 
 const LOW_STOCK_THRESHOLD = 5;
 const PAGE_SIZE = 10;
@@ -152,7 +153,7 @@ export default function AdminProducts() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-gray-500">{p.category?.name || '—'}</td>
-                      <td className="px-4 py-3 text-gray-900 font-medium">${Number(p.price).toFixed(2)}</td>
+                      <td className="px-4 py-3 text-gray-900 font-medium">{formatPrice(p.price)}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs font-medium ${p.totalStock === 0 ? 'text-error' : lowOrOut ? 'text-warning' : 'text-gray-700'}`}>
                           {p.totalStock} {p.totalStock === 1 ? 'unit' : 'units'}
@@ -203,7 +204,7 @@ export default function AdminProducts() {
                     <p className="text-sm font-medium text-gray-900 line-clamp-2 mb-1">{p.name}</p>
                     <p className="text-xs text-gray-500 mb-1.5">{p.category?.name || '—'}</p>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-gray-900">${Number(p.price).toFixed(2)}</span>
+                      <span className="text-sm font-semibold text-gray-900">{formatPrice(p.price)}</span>
                       <span className={`text-xs font-medium ${p.totalStock === 0 ? 'text-error' : lowOrOut ? 'text-warning' : 'text-gray-500'}`}>
                         {p.totalStock} {p.totalStock === 1 ? 'unit' : 'units'}
                       </span>
