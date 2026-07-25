@@ -1,4 +1,4 @@
-// src/pages/Shop.jsx — REDESIGNED (no local styling of its own beyond the components it composes; all changes are in the child components above)
+// src/pages/Shop.jsx
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import SearchBar from '../components/common/SearchBar';
@@ -8,6 +8,8 @@ import FilterSidebar from '../components/filter/FilterSidebar';
 import SortControl from '../components/product/SortControl';
 import ProductGrid from '../components/product/ProductGrid';
 import { useProducts } from '../hooks/useProducts';
+
+const EMPTY_FILTERS = { category: '', size: '', color: '', minPrice: '', maxPrice: '' };
 
 export default function Shop() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -24,7 +26,7 @@ export default function Shop() {
     sort: searchParams.get('sort') || '',
   }), [searchParams]);
 
-  const { products, loading, loadingMore, hasMore, loadMore } = useProducts(filters, 12);
+  const { products, loading, loadingMore, hasMore, loadMore, error, refetch, pagination } = useProducts(filters, 12);
 
   function updateParams(patch) {
     const next = new URLSearchParams(searchParams);
@@ -35,15 +37,19 @@ export default function Shop() {
     setSearchParams(next);
   }
 
+  function clearFilters() {
+    updateParams(EMPTY_FILTERS);
+  }
+
   const activeFilterCount = ['category', 'size', 'color', 'minPrice', 'maxPrice'].filter((k) => filters[k]).length;
 
   return (
-    <div className="px-4 md:px-8 lg:px-12 py-4 md:py-8">
-      <div className="mb-5">
+    <div className="px-4 md:px-8 lg:px-12 py-4 md:py-8 max-w-7xl mx-auto">
+      <div className="mb-5 md:max-w-md">
         <SearchBar value={searchInput} onChange={setSearchInput} onSubmit={(value) => updateParams({ search: value.trim() })} />
       </div>
 
-      <div className="flex items-center gap-3 mb-6 md:hidden">
+      <div className="flex items-center justify-between gap-3 mb-6 md:hidden">
         <FilterButton activeCount={activeFilterCount} onClick={() => setFilterSheetOpen(true)} />
         <SortControl sort={filters.sort} onChange={(sort) => updateParams({ sort })} />
       </div>
@@ -53,13 +59,20 @@ export default function Shop() {
       <div className="md:flex md:gap-8">
         <FilterSidebar filters={filters} onApply={updateParams} />
 
-        <div className="flex-1">
-          <div className="hidden md:flex justify-end mb-6">
-            <SortControl sort={filters.sort} onChange={(sort) => updateParams({ sort })} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-6">
+            <p className="hidden md:block text-sm text-gray-500">
+              {!loading && !error && (pagination ? `${pagination.total} ${pagination.total === 1 ? 'result' : 'results'}` : '')}
+            </p>
+            <div className="hidden md:flex">
+              <SortControl sort={filters.sort} onChange={(sort) => updateParams({ sort })} />
+            </div>
           </div>
           <ProductGrid
             products={products} loading={loading} loadingMore={loadingMore}
             hasMore={hasMore} onLoadMore={loadMore}
+            error={error} onRetry={refetch}
+            onClearFilters={activeFilterCount > 0 || filters.search ? clearFilters : undefined}
             columns="grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
           />
         </div>

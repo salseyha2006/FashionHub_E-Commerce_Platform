@@ -1,7 +1,7 @@
-// src/pages/admin/AdminProducts.jsx — REDESIGNED (2026 pink SaaS table: surface card, gray-50 header, row hover, pink primary CTA)
+// src/pages/admin/AdminProducts.jsx
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Search, FileSpreadsheet } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, FileSpreadsheet, PackageSearch, RefreshCw } from 'lucide-react';
 import { apiClient } from '../../lib/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -17,16 +17,18 @@ export default function AdminProducts() {
   const { showToast } = useToast();
   const { categories } = useCategories();
   const [products, setProducts] = useState([]);
-  const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [search, setSearch] = useState('');
   const [categorySlug, setCategorySlug] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [importOpen, setImportOpen] = useState(false);
 
   async function loadProducts() {
     setLoading(true);
+    setError(false);
     try {
       const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
       if (search.trim()) params.set('search', search.trim());
@@ -35,6 +37,7 @@ export default function AdminProducts() {
       setProducts(data.products);
       setPagination(data.pagination);
     } catch (err) {
+      setError(true);
       showToast(err.message, 'error');
     } finally {
       setLoading(false);
@@ -56,12 +59,16 @@ export default function AdminProducts() {
       await apiClient.delete(`/products/${id}`, { token });
       showToast('Product deleted.', 'success');
       setProducts((prev) => prev.filter((p) => p.id !== id));
+      setPagination((prev) => ({ ...prev, total: Math.max(0, prev.total - 1) }));
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
       setDeletingId(null);
     }
   }
+
+  const rangeStart = pagination.total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(page * PAGE_SIZE, pagination.total || products.length);
 
   return (
     <div>
@@ -110,15 +117,52 @@ export default function AdminProducts() {
         </select>
       </div>
 
+      {!loading && !error && pagination.total > 0 && (
+        <p className="text-xs text-gray-500 mb-2">
+          Showing {rangeStart}–{rangeEnd} of {pagination.total}
+        </p>
+      )}
+
       {loading ? (
-        <div className="rounded-[var(--radius-lg)] overflow-hidden border border-gray-200">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-14 animate-shimmer border-b border-gray-200 last:border-b-0" />
-          ))}
+        <>
+          {/* Desktop skeleton */}
+          <div className="hidden md:block rounded-[var(--radius-lg)] overflow-hidden border border-gray-200">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-16 animate-shimmer border-b border-gray-200 last:border-b-0" />
+            ))}
+          </div>
+          {/* Mobile skeleton — matches card layout so it doesn't jump on load */}
+          <div className="md:hidden space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-24 animate-shimmer rounded-[var(--radius-lg)] border border-gray-200" />
+            ))}
+          </div>
+        </>
+      ) : error ? (
+        <div className="bg-surface border border-gray-200 rounded-[var(--radius-lg)] shadow-xs px-4 py-14 flex flex-col items-center text-center">
+          <p className="text-sm text-gray-500 mb-4">Couldn't load products.</p>
+          <button
+            onClick={loadProducts}
+            className="focus-ring press-scale flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-[var(--radius-md)] hover:bg-gray-50 transition-colors duration-150"
+          >
+            <RefreshCw size={15} /> Retry
+          </button>
         </div>
       ) : products.length === 0 ? (
-        <div className="bg-surface border border-gray-200 rounded-[var(--radius-lg)] shadow-xs px-4 py-10 text-center">
-          <p className="text-sm text-gray-500">No products found.</p>
+        <div className="bg-surface border border-dashed border-gray-300 rounded-[var(--radius-lg)] px-4 py-16 flex flex-col items-center text-center">
+          <div className="w-14 h-14 bg-gray-50 border border-gray-100 rounded-full flex items-center justify-center mb-4">
+            <PackageSearch size={24} className="text-gray-400" />
+          </div>
+          <h3 className="text-sm font-semibold text-gray-900 mb-1">No products found</h3>
+          <p className="text-sm text-gray-500 mb-5 max-w-sm">
+            {search || categorySlug ? 'Try adjusting your search or filters.' : 'Get started by adding your first product.'}
+          </p>
+          <Link
+            to="/admin/products/new"
+            className="focus-ring press-scale flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-[var(--radius-md)] hover:bg-gray-50 transition-colors duration-150"
+          >
+            <Plus size={16} /> Add product
+          </Link>
         </div>
       ) : (
         <>
@@ -136,12 +180,10 @@ export default function AdminProducts() {
               </thead>
               <tbody>
                 {products.map((p) => {
-                  const lowOrOut = p.totalStock <= LOW_STOCK_THRESHOLD;
+                  const isOut = p.totalStock === 0;
+                  const isLow = !isOut && p.totalStock <= LOW_STOCK_THRESHOLD;
                   return (
-                    <tr
-                      key={p.id}
-                      className={`border-t border-gray-200 hover:bg-gray-50 transition-colors duration-150 ${lowOrOut ? 'bg-error-light/30' : ''}`}
-                    >
+                    <tr key={p.id} className="border-t border-gray-200 hover:bg-gray-50 transition-colors duration-150">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <img
@@ -149,14 +191,20 @@ export default function AdminProducts() {
                             alt={p.name}
                             className="w-10 h-12 object-cover rounded-[var(--radius-sm)] bg-gray-100 shrink-0"
                           />
-                          <span className="text-gray-900 line-clamp-1">{p.name}</span>
+                          <Link to={`/admin/products/${p.id}/edit`} className="text-gray-900 hover:text-primary-600 transition-colors line-clamp-1">
+                            {p.name}
+                          </Link>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-gray-500">{p.category?.name || '—'}</td>
-                      <td className="px-4 py-3 text-gray-900 font-medium">{formatPrice(p.price)}</td>
+                      <td className="px-4 py-3 text-gray-900 font-medium tabular-nums">{formatPrice(p.price)}</td>
                       <td className="px-4 py-3">
-                        <span className={`text-xs font-medium ${p.totalStock === 0 ? 'text-error' : lowOrOut ? 'text-warning' : 'text-gray-700'}`}>
-                          {p.totalStock} {p.totalStock === 1 ? 'unit' : 'units'}
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
+                          isOut ? 'bg-error-light text-error border-error/20' :
+                          isLow ? 'bg-warning-light text-warning border-warning/20' :
+                          'bg-gray-50 text-gray-600 border-gray-200'
+                        }`}>
+                          {isOut ? 'Out of stock' : `${p.totalStock} in stock`}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -185,28 +233,31 @@ export default function AdminProducts() {
             </table>
           </div>
 
-          {/* Mobile: stacked cards instead of a horizontally-scrolling table.
-              Action buttons are sized to the 44px minimum touch target. */}
+          {/* Mobile: stacked cards, 44px touch targets */}
           <div className="md:hidden space-y-3">
             {products.map((p) => {
-              const lowOrOut = p.totalStock <= LOW_STOCK_THRESHOLD;
+              const isOut = p.totalStock === 0;
+              const isLow = !isOut && p.totalStock <= LOW_STOCK_THRESHOLD;
               return (
-                <div
-                  key={p.id}
-                  className={`bg-surface border border-gray-200 rounded-[var(--radius-lg)] shadow-xs p-4 flex gap-3 ${lowOrOut ? 'bg-error-light/30' : ''}`}
-                >
+                <div key={p.id} className="bg-surface border border-gray-200 rounded-[var(--radius-lg)] shadow-xs p-4 flex gap-3">
                   <img
                     src={p.images?.[0] || 'https://placehold.co/64x80?text=No+Image'}
                     alt={p.name}
                     className="w-14 h-[72px] object-cover rounded-[var(--radius-sm)] bg-gray-100 shrink-0"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-900 line-clamp-2 mb-1">{p.name}</p>
+                    <Link to={`/admin/products/${p.id}/edit`} className="text-sm font-medium text-gray-900 line-clamp-2 mb-1 block">
+                      {p.name}
+                    </Link>
                     <p className="text-xs text-gray-500 mb-1.5">{p.category?.name || '—'}</p>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-semibold text-gray-900">{formatPrice(p.price)}</span>
-                      <span className={`text-xs font-medium ${p.totalStock === 0 ? 'text-error' : lowOrOut ? 'text-warning' : 'text-gray-500'}`}>
-                        {p.totalStock} {p.totalStock === 1 ? 'unit' : 'units'}
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${
+                        isOut ? 'bg-error-light text-error border-error/20' :
+                        isLow ? 'bg-warning-light text-warning border-warning/20' :
+                        'bg-gray-50 text-gray-600 border-gray-200'
+                      }`}>
+                        {isOut ? 'Out of stock' : `${p.totalStock} left`}
                       </span>
                     </div>
                   </div>

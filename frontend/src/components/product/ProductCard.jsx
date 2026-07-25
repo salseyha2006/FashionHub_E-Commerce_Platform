@@ -1,5 +1,6 @@
-// src/components/product/ProductCard.jsx — REDESIGNED (2026 pink SaaS card: surface + shadow-elevate on hover, price moved from photo overlay into a clean content row)
 import { Link } from 'react-router-dom';
+import WishlistButton from './WishlistButton';
+import { formatPrice } from '../../utils/currency';
 
 export default function ProductCard({ product }) {
   const image = product.images?.[0];
@@ -13,6 +14,7 @@ export default function ProductCard({ product }) {
           <img
             src={image}
             alt={product.name}
+            loading="lazy"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
@@ -24,12 +26,18 @@ export default function ProductCard({ product }) {
             Sold out
           </span>
         )}
+
+        <WishlistButton
+          productId={product.id}
+          size={16}
+          className="absolute top-2 right-2 bg-surface/90 backdrop-blur-sm rounded-full p-1.5 shadow-xs hover:bg-surface"
+        />
       </div>
 
       <div className="flex items-start justify-between gap-2 px-3 py-3">
         <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
         <p className="text-sm font-semibold text-primary-600 shrink-0">
-          ${Number(product.price).toFixed(2)}
+          {formatPrice(product.price)}
         </p>
       </div>
     </Link>

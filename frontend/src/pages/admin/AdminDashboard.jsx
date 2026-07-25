@@ -1,7 +1,7 @@
-// src/pages/admin/AdminDashboard.jsx — REDESIGNED (2026 pink SaaS: shimmer loading state, elevated stat cards, gradient bar chart, styled empty/error states)
+// src/pages/admin/AdminDashboard.jsx
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { DollarSign, ShoppingBag, AlertTriangle, PartyPopper } from 'lucide-react';
+import { DollarSign, ShoppingBag, AlertTriangle, PartyPopper, RefreshCw } from 'lucide-react';
 import { apiClient } from '../../lib/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -14,9 +14,9 @@ function StatCard({ icon: Icon, label, value }) {
       <div className="h-10 w-10 rounded-[var(--radius-md)] bg-primary-50 flex items-center justify-center shrink-0">
         <Icon size={18} className="text-primary-600" />
       </div>
-      <div>
+      <div className="min-w-0">
         <p className="text-xs text-gray-500">{label}</p>
-        <p className="text-lg font-semibold text-gray-900">{value}</p>
+        <p className="text-lg font-semibold text-gray-900 truncate">{value}</p>
       </div>
     </div>
   );
@@ -24,13 +24,16 @@ function StatCard({ icon: Icon, label, value }) {
 
 function SalesChart({ data }) {
   if (data.length === 0) {
-    return <p className="text-sm text-gray-500">No sales data yet.</p>;
+    return <p className="text-sm text-gray-500 py-8 text-center">No sales data yet.</p>;
   }
   const max = Math.max(...data.map((d) => d.total), 1);
   return (
-    <div className="flex items-end gap-3 h-40 border-b border-gray-200 pb-0">
+    <div className="flex items-end gap-3 h-44 border-b border-gray-200 pb-0">
       {data.map((d) => (
-        <div key={d.month} className="flex-1 flex flex-col items-center gap-2">
+        <div key={d.month} className="flex-1 flex flex-col items-center gap-1.5 group">
+          <span className="text-[10px] text-gray-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+            {formatPrice(d.total)}
+          </span>
           <div className="w-full flex items-end justify-center h-32">
             <div
               className="w-full max-w-[36px] rounded-t-[var(--radius-sm)] transition-all duration-300"
@@ -38,7 +41,6 @@ function SalesChart({ data }) {
                 height: `${Math.max((d.total / max) * 100, 3)}%`,
                 background: 'var(--gradient-primary)',
               }}
-              title={formatPrice(d.total)}
             />
           </div>
           <span className="text-[10px] text-gray-500 uppercase font-medium">{d.month.slice(5)}</span>
@@ -72,23 +74,32 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  function loadStats() {
+    setLoading(true);
     apiClient.get('/admin/dashboard', { token })
       .then(setStats)
       .catch((err) => showToast(err.message, 'error'))
       .finally(() => setLoading(false));
-  }, [token, showToast]);
+  }
+
+  useEffect(loadStats, [token, showToast]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return <DashboardSkeleton />;
 
   if (!stats) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-        <div className="h-11 w-11 rounded-full bg-error-light flex items-center justify-center">
+        <div className="h-11 w-11 rounded-full bg-error-light flex items-center justify-center mb-1">
           <AlertTriangle size={20} className="text-error" />
         </div>
         <p className="text-sm font-medium text-gray-900">Couldn't load dashboard</p>
-        <p className="text-sm text-gray-500">Please try refreshing the page.</p>
+        <p className="text-sm text-gray-500 mb-4">Something went wrong fetching your stats.</p>
+        <button
+          onClick={loadStats}
+          className="focus-ring press-scale flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-[var(--radius-md)] hover:bg-gray-50 transition-colors duration-150"
+        >
+          <RefreshCw size={15} /> Retry
+        </button>
       </div>
     );
   }
@@ -110,7 +121,14 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
-          <p className="text-xs uppercase tracking-wider text-gray-500 mb-3 font-medium">Low stock alert</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs uppercase tracking-wider text-gray-500 font-medium">Low stock alert</p>
+            {stats.lowStockItems.length > 0 && (
+              <Link to="/admin/products?stock=low" className="focus-ring text-xs font-medium text-primary-600 hover:text-primary-700">
+                View all
+              </Link>
+            )}
+          </div>
           {stats.lowStockItems.length === 0 ? (
             <div className="bg-surface border border-gray-200 rounded-[var(--radius-lg)] shadow-xs px-4 py-6 flex items-center gap-2 justify-center text-center">
               <PartyPopper size={16} className="text-gray-400" />
@@ -122,9 +140,9 @@ export default function AdminDashboard() {
                 <Link
                   key={i}
                   to={`/admin/products/${item.productId}/edit`}
-                  className="focus-ring flex items-center justify-between px-4 py-3 text-sm hover:bg-gray-50 transition-colors duration-150"
+                  className="focus-ring flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-gray-50 transition-colors duration-150"
                 >
-                  <span className="text-gray-900">
+                  <span className="text-gray-900 min-w-0 truncate">
                     {item.productName}
                     <span className="text-gray-500"> — {item.size}, {item.color}</span>
                   </span>
@@ -138,7 +156,14 @@ export default function AdminDashboard() {
         </div>
 
         <div>
-          <p className="text-xs uppercase tracking-wider text-gray-500 mb-3 font-medium">Recent orders</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs uppercase tracking-wider text-gray-500 font-medium">Recent orders</p>
+            {stats.recentOrders.length > 0 && (
+              <Link to="/admin/orders" className="focus-ring text-xs font-medium text-primary-600 hover:text-primary-700">
+                View all
+              </Link>
+            )}
+          </div>
           {stats.recentOrders.length === 0 ? (
             <div className="bg-surface border border-gray-200 rounded-[var(--radius-lg)] shadow-xs px-4 py-6 text-center">
               <p className="text-sm text-gray-500">No orders yet.</p>
@@ -149,11 +174,11 @@ export default function AdminDashboard() {
                 <Link
                   key={o.id}
                   to={`/admin/orders/${o.id}`}
-                  className="focus-ring flex items-center justify-between px-4 py-3 text-sm hover:bg-gray-50 transition-colors duration-150"
+                  className="focus-ring flex items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 transition-colors duration-150"
                 >
-                  <span className="text-gray-900">#{o.orderNumber}</span>
+                  <span className="text-gray-900 shrink-0">#{o.orderNumber}</span>
                   <StatusBadge status={o.status} />
-                  <span className="text-gray-900 font-medium shrink-0">{formatPrice(o.totalAmount)}</span>
+                  <span className="text-gray-900 font-medium shrink-0 ml-auto">{formatPrice(o.totalAmount)}</span>
                 </Link>
               ))}
             </div>

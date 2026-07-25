@@ -1,4 +1,4 @@
-// src/hooks/useProducts.js — NEW
+// src/hooks/useProducts.js
 import { useEffect, useState, useCallback } from 'react';
 import { apiClient } from '../lib/apiClient';
 
@@ -19,7 +19,9 @@ export function useProducts(filters = {}, limit = 12) {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
+  const [reloadToken, setReloadToken] = useState(0);
   const filtersKey = JSON.stringify(filters);
+  const refetch = useCallback(() => setReloadToken((t) => t + 1), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,7 +40,7 @@ export function useProducts(filters = {}, limit = 12) {
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtersKey, limit]);
+  }, [filtersKey, limit, reloadToken]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !pagination || page >= pagination.totalPages) return;
@@ -59,5 +61,5 @@ export function useProducts(filters = {}, limit = 12) {
 
   const hasMore = pagination ? page < pagination.totalPages : false;
 
-  return { products, loading, loadingMore, error, loadMore, hasMore, pagination };
+  return { products, loading, loadingMore, error, loadMore, hasMore, pagination, refetch };
 }

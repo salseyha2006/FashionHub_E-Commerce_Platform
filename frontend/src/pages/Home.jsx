@@ -1,4 +1,4 @@
-// src/pages/Home.jsx — Phase 11: sections now driven by Admin's Homepage layout settings
+// src/pages/Home.jsx
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import SearchBar from '../components/common/SearchBar';
@@ -8,8 +8,6 @@ import ProductGrid from '../components/product/ProductGrid';
 import { useProducts } from '../hooks/useProducts';
 import { useSettings } from '../hooks/useSettings';
 
-// Used until settings load (and as a safety net if an Admin never saved
-// homepage layout yet) — same order/visibility the page always had.
 const DEFAULT_SECTIONS = [
   { id: 'hero', label: 'Hero banner', visible: true },
   { id: 'categories', label: 'Featured categories', visible: true },
@@ -19,7 +17,7 @@ const DEFAULT_SECTIONS = [
 export default function Home() {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
-  const { products, loading, loadingMore, hasMore, loadMore } = useProducts({ sort: 'newest' }, 8);
+  const { products, loading, loadingMore, hasMore, loadMore, error, refetch } = useProducts({ sort: 'newest' }, 8);
   const { settings } = useSettings();
 
   const sections = settings?.homepageSections?.length ? settings.homepageSections : DEFAULT_SECTIONS;
@@ -43,7 +41,15 @@ export default function Home() {
                 View all
               </Link>
             </div>
-            <ProductGrid products={products} loading={loading} loadingMore={loadingMore} hasMore={hasMore} onLoadMore={loadMore} />
+            <ProductGrid
+              products={products}
+              loading={loading}
+              loadingMore={loadingMore}
+              hasMore={hasMore}
+              onLoadMore={loadMore}
+              error={error}
+              onRetry={refetch}
+            />
           </div>
         );
 
@@ -53,12 +59,14 @@ export default function Home() {
   }
 
   return (
-    <div className="px-4 md:px-8 lg:px-12 py-4 md:py-8 flex flex-col gap-7 md:gap-12">
-      <SearchBar
-        value={search}
-        onChange={setSearch}
-        onSubmit={(value) => value.trim() && navigate(`/shop?search=${encodeURIComponent(value.trim())}`)}
-      />
+    <div className="px-4 md:px-8 lg:px-12 py-4 md:py-8 max-w-7xl mx-auto flex flex-col gap-7 md:gap-12">
+      <div className="w-full md:max-w-md">
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          onSubmit={(value) => value.trim() && navigate(`/shop?search=${encodeURIComponent(value.trim())}`)}
+        />
+      </div>
       {sections.map(renderSection)}
     </div>
   );

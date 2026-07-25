@@ -1,11 +1,22 @@
-// src/components/product/ImageGallery.jsx — REDESIGNED (radius tokens, focus-ring on zoom close)
-import { useState, useRef } from 'react';
+// src/components/product/ImageGallery.jsx
+import { useState, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
 
 export default function ImageGallery({ images = [], alt }) {
   const [index, setIndex] = useState(0);
   const [zoomOpen, setZoomOpen] = useState(false);
   const touchStartX = useRef(null);
+
+  useEffect(() => {
+    if (!zoomOpen) return;
+    document.body.style.overflow = 'hidden';
+    function handleKeyDown(e) { if (e.key === 'Escape') setZoomOpen(false); }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [zoomOpen]);
 
   function handleTouchStart(e) { touchStartX.current = e.touches[0].clientX; }
   function handleTouchEnd(e) {
